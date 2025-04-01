@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MétéoPro - Prévisions précises</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2980b9;
+            --dark-color: #2c3e50;
+            --light-color: #ecf0f1;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --success-color: #2ecc71;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            transition: all 0.3s ease;
+        }
+
+        body.dark-mode {
+            background-color: #1a1a1a;
+            color: #f5f7fa;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        body.dark-mode header {
+            border-bottom-color: #444;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--dark-color);
+        }
+
+        body.dark-mode .theme-toggle {
+            color: var(--light-color);
+        }
+
+        .search-container {
+            display: flex;
+            margin: 20px 0;
+        }
+
+        #search-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px 0 0 4px;
+            font-size: 16px;
+        }
+
+        body.dark-mode #search-input {
+            background-color: #333;
+            color: #fff;
+            border-color: #444;
+        }
+
+        #search-btn {
+            padding: 12px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        #search-btn:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .current-weather {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .location-time {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .location {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .time {
+            font-size: 18px;
+        }
+
+        .weather-main {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .temperature {
+            font-size: 72px;
+            font-weight: bold;
+        }
+
+        .weather-icon {
+            font-size: 60px;
+            margin-right: 20px;
+        }
+
+        .weather-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .detail-item {
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .detail-label {
+            font-size: 14px;
+            margin-bottom: 5px;
+            opacity: 0.8;
+        }
+
+        .detail-value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .weather-alert {
+            background-color: var(--danger-color);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.8; }
+            50% { opacity: 1; }
+            100% { opacity: 0.8; }
+        }
+
+        .alert-icon {
+            margin-right: 10px;
+            font-size: 24px;
+        }
+
+        .forecast-section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: var(--dark-color);
+        }
+
+        body.dark-mode .section-title {
+            color: var(--light-color);
+        }
+
+        .hourly-forecast {
+            display: flex;
+            overflow-x: auto;
+            gap: 15px;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .hour-card {
+            min-width: 100px;
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        body.dark-mode .hour-card {
+            background-color: #333;
+        }
+
+        .hour-time {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .hour-icon {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .hour-temp {
+            font-size: 18px;
+        }
+
+        .daily-forecast {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .day-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        body.dark-mode .day-card {
+            background-color: #333;
+        }
+
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .day-name {
+            font-weight: bold;
+        }
+
+        .day-date {
+            opacity: 0.7;
+        }
+
+        .day-weather {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .day-icon {
+            font-size: 30px;
+        }
+
+        .day-temps {
+            text-align: right;
+        }
+
+        .day-high {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .day-low {
+            opacity: 0.7;
+        }
+
+        .day-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .map-container {
+            height: 400px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        #weather-map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .social-share {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .share-btn {
+            padding: 10px 15px;
+            border-radius: 5px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .facebook {
+            background-color: #3b5998;
+        }
+
+        .twitter {
+            background-color: #1da1f2;
+        }
+
+        .whatsapp {
+            background-color: #25d366;
+        }
+
+        .weather-tips {
+            background-color: var(--warning-color);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .tips-title {
+            font-size: 18px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            border-top: 1px solid #ddd;
+            margin-top: 30px;
+            font-size: 14px;
+            color: #777;
+        }
+
+        body.dark-mode footer {
+            border-top-color: #444;
+            color: #aaa;
+        }
+
+        @media (max-width: 768px) {
+            .weather-main {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .temperature {
+                font-size: 60px;
+            }
+            
+            .weather-icon {
+                margin-right: 0;
+                margin-bottom: 20px;
+            }
+            
+            .daily-forecast {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">MétéoPro</div>
+            <button class="theme-toggle" id="theme-toggle">
+                <i class="fas fa-moon"></i>
+            </button>
+        </header>
+
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="Rechercher une ville...">
+            <button id="search-btn"><i class="fas fa-search"></i> Rechercher</button>
+        </div>
+
+        <div class="current-weather">
+            <div class="location-time">
+                <div class="location">Genève, Suisse</div>
+                <div class="time">Mardi 2 avril 2024, 14:30</div>
+            </div>
+            <div class="weather-main">
+                <div class="weather-display">
+                    <div class="temperature">18°C</div>
+                    <div class="weather-description">Ensoleillé</div>
+                </div>
+                <div class="weather-icon">
+                    <i class="fas fa-sun"></i>
+                </div>
+                <div class="weather-details">
+                    <div class="detail-item">
+                        <div class="detail-label">Ressenti</div>
+                        <div class="detail-value">17°C</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Humidité</div>
+                        <div class="detail-value">65%</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Vent</div>
+                        <div class="detail-value">10 km/h</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Pression</div>
+                        <div class="detail-value">1015 hPa</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">UV</div>
+                        <div class="detail-value">4 (Modéré)</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Visibilité</div>
+                        <div class="detail-value">10 km</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="weather-alert">
+            <div class="alert-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="alert-message">
+                Alerte météo: Orages prévus dans la région ce soir à partir de 20h00.
+            </div>
+        </div>
+
+        <div class="forecast-section">
+            <h2 class="section-title">Prévisions horaires</h2>
+            <div class="hourly-forecast">
+                <div class="hour-card">
+                    <div class="hour-time">Maintenant</div>
+                    <div class="hour-icon"><i class="fas fa-sun"></i></div>
+                    <div class="hour-temp">18°C</div>
+                </div>
+                <div class="hour-card">
+                    <div class="hour-time">15h</div>
+                    <div class="hour-icon"><i class="fas fa-sun"></i></div>
+                    <div class="hour-temp">19°C</div>
+                </div>
+                <div class="hour-card">
+                    <div class="hour-time">16h</div>
+                    <div class="hour-icon"><i class="fas fa-cloud-sun"></i></div>
+                    <div class="hour-temp">18°C</div>
+                </div>
+                <div class="hour-card">
+                    <div class="hour-time">17h</div>
+                    <div class="hour-icon"><i class="fas fa-cloud-sun"></i></div>
+                    <div class="hour-temp">17°C</div>
+                </div>
+                <div class="hour-card">
+                    <div class="hour-time">18h</div>
+                    <div class="hour-icon"><i class="fas fa-cloud"></i></div>
+                    <div class="hour-temp">16°C</div>
+                </div>
+                <div class="hour-card">
+                    <div class="hour-time">19h</div>
+                    <div class="hour-icon"><i class="fas fa-cloud"></i></div>
+                    <div class="hour-temp">15°C</div>
+                </div>
+                <div class="hour-card">
+                    <div class="hour-time">20h</div>
+                    <div class="hour-icon"><i class="fas fa-bolt"></i></div>
+                    <div class="hour-temp">14°C</div>
+                </div>
+                <div class="hour-card">
+                    <div class="hour-time">21h</div>
+                    <div class="hour-icon"><i class="fas fa-bolt"></i></div>
+                    <div class="hour-temp">13°C</div>
+                </div>
+                <div class="hour-card">
+                    <div class="hour-time">22h</div>
+                    <div class="hour-icon"><i class="fas fa-cloud-rain"></i></div>
+                    <div class="hour-temp">12°C</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="forecast-section">
+            <h2 class="section-title">Prévisions sur 7 jours</h2>
+            <div class="daily-forecast">
+                <div class="day-card">
+                    <div class="day-header">
+                        <div class="day-name">Aujourd'hui</div>
+                        <div class="day-date">2 avr.</div>
+                    </div>
+                    <div class="day-weather">
+                        <div class="day-icon"><i class="fas fa-sun"></i></div>
+                        <div class="day-temps">
+                            <div class="day-high">19°C</div>
+                            <div class="day-low">12°C</div>
+                        </div>
+                    </div>
+                    <div class="day-details">
+                        <div>Précipitations: 10%</div>
+                        <div>Vent: 12 km/h</div>
+                        <div>Humidité: 65%</div>
+                        <div>UV: 4</div>
+                    </div>
+                </div>
+                <div class="day-card">
+                    <div class="day-header">
+                        <div class="day-name">Mercredi</div>
+                        <div class="day-date">3 avr.</div>
+                    </div>
+                    <div class="day-weather">
+                        <div class="day-icon"><i class="fas fa-cloud-sun"></i></div>
+                        <div class="day-temps">
+                            <div class="day-high">17°C</div>
+                            <div class="day-low">11°C</div>
+                        </div>
+                    </div>
+                    <div class="day-details">
+                        <div>Précipitations: 30%</div>
+                        <div>Vent: 15 km/h</div>
+                        <div>Humidité: 70%</div>
+                        <div>UV: 3</div>
+                    </div>
+                </div>
+                <div class="day-card">
+                    <div class="day-header">
+                        <div class="day-name">Jeudi</div>
+                        <div class="day-date">4 avr.</div>
+                    </div>
+                    <div class="day-weather">
+                        <div class="day-icon"><i class="fas fa-cloud-rain"></i></div>
+                        <div class="day-temps">
+                            <div class="day-high">15°C</div>
+                            <div class="day-low">10°C</div>
+                        </div>
+                    </div>
+                    <div class="day-details">
+                        <div>Précipitations: 80%</div>
+                        <div>Vent: 20 km/h</div>
+                        <div>Humidité: 85%</div>
+                        <div>UV: 2</div>
+                    </div>
+                </div>
+                <div class="day-card">
+                    <div class="day-header">
+                        <div class="day-name">Vendredi</div>
+                        <div class="day-date">5 avr.</div>
+                    </div>
+                    <div class="day-weather">
+                        <div class="day-icon"><i class="fas fa-cloud-showers-heavy"></i></div>
+                        <div class="day-temps">
+                            <div class="day-high">14°C</div>
+                            <div class="day-low">9°C</div>
+                        </div>
+                    </div>
+                    <div class="day-details">
+                        <div>Précipitations: 90%</div>
+                        <div>Vent: 25 km/h</div>
+                        <div>Humidité: 90%</div>
+                        <div>UV: 1</div>
+                    </div>
+                </div>
+                <div class="day-card">
+                    <div class="day-header">
+                        <div class="day-name">Samedi</div>
+                        <div class="day-date">6 avr.</div>
+                    </div>
+                    <div class="day-weather">
+                        <div class="day-icon"><i class="fas fa-cloud-sun"></i></div>
+                        <div class="day-temps">
+                            <div class="day-high">16°C</div>
+                            <div class="day-low">10°C</div>
+                        </div>
+                    </div>
+                    <div class="day-details">
+                        <div>Précipitations: 40%</div>
+                        <div>Vent: 15 km/h</div>
+                        <div>Humidité: 75%</div>
+                        <div>UV: 3</div>
+                    </div>
+                </div>
+                <div class="day-card">
+                    <div class="day-header">
+                        <div class="day-name">Dimanche</div>
+                        <div class="day-date">7 avr.</div>
+                    </div>
+                    <div class="day-weather">
+                        <div class="day-icon"><i class="fas fa-sun"></i></div>
+                        <div class="day-temps">
+                            <div class="day-high">18°C</div>
+                            <div class="day-low">11°C</div>
+                        </div>
+                    </div>
+                    <div class="day-details">
+                        <div>Précipitations: 10%</div>
+                        <div>Vent: 10 km/h</div>
+                        <div>Humidité: 65%</div>
+                        <div>UV: 4</div>
+                    </div>
+                </div>
+                <div class="day-card">
+                    <div class="day-header">
+                        <div class="day-name">Lundi</div>
+                        <div class="day-date">8 avr.</div>
+                    </div>
+                    <div class="day-weather">
+                        <div class="day-icon"><i class="fas fa-sun"></i></div>
+                        <div class="day-temps">
+                            <div class="day-high">19°C</div>
+                            <div class="day-low">12°C</div>
+                        </div>
+                    </div>
+                    <div class="day-details">
+                        <div>Précipitations: 5%</div>
+                        <div>Vent: 8 km/h</div>
+                        <div>Humidité: 60%</div>
+                        <div>UV: 5</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <h2 class="section-title">Carte météo interactive</h2>
+            <div id="weather-map"></div>
+        </div>
+
+        <div class="weather-tips">
+            <h3 class="tips-title">
+                <i class="fas fa-umbrella"></i> Conseil du jour
+            </h3>
+            <p>Un orage est prévu ce soir. Pensez à rentrer vos objets extérieurs et à éviter les déplacements non nécessaires entre 20h et 22h.</p>
+        </div>
+
+        <div class="social-share">
+            <a href="#" class="share-btn facebook">
+                <i class="fab fa-facebook-f"></i> Partager
+            </a>
+            <a href="#" class="share-btn twitter">
+                <i class="fab fa-twitter"></i> Tweeter
+            </a>
+            <a href="#" class="share-btn whatsapp">
+                <i class="fab fa-whatsapp"></i> Envoyer
+            </a>
+        </div>
+
+        <footer>
+            <p>© 2024 MétéoPro - Données météo fournies par OpenWeatherMap</p>
+            <p>Dernière mise à jour: 02/04/2024 14:25</p>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script>
+        // Dark/Light mode toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            const icon = themeToggle.querySelector('i');
+            if (document.body.classList.contains('dark-mode')) {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            } else {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            }
+        });
+
+        // Initialize map
+        const map = L.map('weather-map').setView([46.2044, 6.1432], 10); // Geneva coordinates
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Add weather layer (this would come from a weather API in a real implementation)
+        L.circle([46.2044, 6.1432], {
+            color: 'blue',
+            fillColor: '#30f',
+            fillOpacity: 0.2,
+            radius: 10000
+        }).addTo(map).bindPopup("Genève - Ensoleillé");
+
+        // Search functionality
+        const searchBtn = document.getElementById('search-btn');
+        searchBtn.addEventListener('click', () => {
+            const searchInput = document.getElementById('search-input');
+            alert(`Recherche pour: ${searchInput.value}\nCette fonctionnalité serait connectée à une API de géocodage dans une implémentation réelle.`);
+        });
+
+        // Simulate loading real data
+        setTimeout(() => {
+            // This would be replaced with actual API calls
+            console.log("Chargement des données météo...");
+        }, 1000);
+    </script>
+</body>
+</html>
